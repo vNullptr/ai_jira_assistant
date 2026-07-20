@@ -1,15 +1,16 @@
 from pydantic import BaseModel, Field
 from abc import ABC, abstractmethod
 from langchain_ollama import ChatOllama
+from langchain_core.prompts import BaseChatPromptTemplate
 
-from schema.prompt import PromptSchema
+from schema.prompt import basePrompt
 
 
 class LLMClient(BaseModel, ABC):
     model_name : str = Field()
     
     @abstractmethod
-    def prompt(self, prompt : PromptSchema, temperature : int = 0):
+    def prompt(self, prompt : BaseChatPromptTemplate, temperature : int = 0):
         """Prompts the llm model.
 
         Args:
@@ -23,7 +24,7 @@ class LLMClient(BaseModel, ABC):
 class MistralClient(LLMClient):
     """Client for ollama Mistral model"""
         
-    def prompt(self, prompt : PromptSchema, temperature : int = 0) -> any:
+    def prompt(self, prompt : BaseChatPromptTemplate, temperature : int = 0) -> any:
         pass
         
         
