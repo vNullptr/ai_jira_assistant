@@ -1,57 +1,66 @@
 # Jira Mail Assistant
 
-Prototype d'assistant LLM + RAG pour la qualification automatique des demandes clients.
+LLM + RAG prototype for automatically qualifying incoming client requests.
 
-Analyse un email client, en extrait les informations clés, recherche la documentation PowerCARD pertinente, et pré-remplit un ticket Jira, validé par un relecteur humain avant création.
+Analyzes a client email, extracts the key information, retrieves the relevant PowerCARD documentation, and pre-fills a Jira ticket, reviewed and approved by a human before creation.
 
-## Fonctionnement
+## How it works
 
-**Offline** — la documentation PowerCARD est parsée, découpée, vectorisée et indexée dans Qdrant avec ses métadonnées (type de document, module, version).
+**Offline** — the PowerCARD documentation is parsed, chunked, embedded, and indexed in Qdrant along with its metadata (document type, module, version).
 
-**Online** — pour chaque email :
+**Online** — for each email:
 
-1. L'email entre dans le système (collage ou upload `.eml`)
-2. Un LLM extrait les champs clés et génère un résumé structuré
-3. La recherche RAG identifie les documents les plus pertinents
-4. Le relecteur valide et corrige via l'interface
-5. Le ticket Jira est créé avec les champs pré-remplis
+1. The email enters the system (paste or `.eml` upload)
+2. An LLM extracts the key fields and generates a structured summary
+3. RAG retrieval identifies the most relevant documents
+4. The reviewer validates and corrects the result through the UI
+5. The Jira ticket is created with its fields pre-filled
 
-Aucun ticket n'est écrit dans Jira sans validation humaine explicite.
+No ticket is written to Jira without explicit human approval.
+
+## Architecture
+
+![Architecture overview](documentation/assets/simple_archi.jpg)
+
+*Draft architecture, subject to change.*
 
 ## Stack
 
-| Composant | Choix |
+| Component | Choice |
 | --- | --- |
 | API | FastAPI + Pydantic |
-| LLM | Azure OpenAI ou Mistral local (interchangeable) |
+| LLM | Azure OpenAI or local Mistral (swappable) |
 | Embeddings | `multilingual-e5-large` |
 | Vector store | Qdrant |
-| Queue + état | PostgreSQL |
-| Interface | Streamlit |
+| Queue + state | PostgreSQL |
+| UI | Streamlit |
 | Infra | Docker Compose |
 
 ## Structure
 
 ```text
-schemas/     # modèles Pydantic — le contrat partagé de bout en bout
-services/    # logique métier pure (extraction, retrieval, mapping Jira)
-clients/     # wrappers interchangeables (LLM, embeddings, Qdrant, Jira)
-api/         # routes FastAPI
-worker/      # boucle de traitement des jobs
-ingestion/   # pipeline documentaire offline
-db/          # modèles et requêtes Postgres
-ui/          # interface de relecture Streamlit
+schemas/     # Pydantic models - the shared end-to-end contract
+services/    # pure business logic (extraction, retrieval, Jira mapping)
+clients/     # swappable wrappers (LLM, embeddings, Qdrant, Jira)
+api/         # FastAPI routes
+worker/      # job processing loop
+ingestion/   # offline documentation pipeline
+db/          # Postgres models and queries
+ui/          # Streamlit review interface
 ```
 
-## Démarrage
+## Getting started
 
 ```bash
-cp .env.example .env     # configurer LLM_PROVIDER, JIRA_*, QDRANT_*
+cp .env.example .env     # configure LLM_PROVIDER, JIRA_*, QDRANT_*
 docker compose up
 ```
 
-# Plan Architecture
+- API: http://localhost:8000 (docs: `/docs`)
+- Review UI: http://localhost:8501
 
-Plan du prototype de l'architecture. ( temporaire ) 
+Index the documentation:
 
-![Simple Architecture](documentation/assets/simple_archi.jpg)
+```bash
+docker compose run --rm worker python -m ingestion.run --path ./docs
+```
