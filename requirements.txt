@@ -29,6 +29,9 @@ ollama==0.6.2
 orjson==3.11.9
 ormsgpack==1.12.2
 packaging==26.2
+postgres==4.0
+psycopg2-binary==2.9.12
+psycopg2-pool==1.2
 pydantic==2.13.4
 pydantic-settings==2.14.2
 pydantic_core==2.46.4
