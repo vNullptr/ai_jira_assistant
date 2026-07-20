@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import Dict
 
 class PromptSchema(BaseModel):
     prompt : str | None = Field()
