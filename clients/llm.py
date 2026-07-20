@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from ollama import chat
+from langchain_ollama import ChatOllama
 
 from schema.prompt import PromptSchema
 
@@ -12,10 +12,7 @@ class LLMClient(BaseModel):
 class MistralClient(LLMClient):
         
     def prompt(self, prompt : PromptSchema) -> any:
-        result = chat(
-            model=self.model_name,
-            messages=[prompt],
-            )
+        
         
         
 if __name__ == "__main__":
