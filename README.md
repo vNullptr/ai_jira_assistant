@@ -52,6 +52,6 @@ docker compose up
 
 # Plan Architecture
 
-Plan du prototype de l'architecture. 
+Plan du prototype de l'architecture. ( temporaire ) 
 
 ![Simple Architecture](documentation/assets/simple_archi.jpg)
