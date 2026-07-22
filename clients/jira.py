@@ -6,7 +6,7 @@ class JiraClient(BaseModel, ABC):
     """Jira Client used to communicate with a project."""
     
     @abstractmethod
-    def get_issue_comments(id: int) -> list:
+    def get_issue_comments(self, id: int) -> list:
         """Fetchs comments from an issue by id.
 
         Args:
