@@ -1,28 +1,36 @@
-# Jira Mail Assistant
+# Jira Issue Assistant
 
-LLM + RAG prototype for automatically qualifying incoming client requests.
+On-demand assistant for Jira Service Management support threads powered by LLM and RAG architecture.
 
-Analyzes a client email, extracts the key information, retrieves the relevant PowerCARD documentation, and pre-fills a Jira ticket, reviewed and approved by a human before creation.
+A support engineer invokes the assistant on a request. It reads the full thread, produces a structured summary of the request and its current state, finds the most relevant documentation, and posts both back as an internal comment.
+
+## Why
+
+Support handles most client requests directly in the thread. Creating tickets is not the bottleneck. What still costs time is picking up a long thread to understand where it stands, and hunting through specifications, change requests, technical guides, and API documentation to find the relevant reference.
 
 ## How it works
 
-**Offline** — the PowerCARD documentation is parsed, chunked, embedded, and indexed in Qdrant along with its metadata (document type, module, version).
+**Offline** — the documentation corpus is parsed, chunked, embedded, and indexed in Qdrant with its metadata (document type, module, version).
 
-**Online** — for each email:
+**Online** — per invocation:
 
-1. The email enters the system (paste or `.eml` upload)
-2. An LLM extracts the key fields and generates a structured summary
-3. RAG retrieval identifies the most relevant documents
-4. The reviewer validates and corrects the result through the UI
-5. The Jira ticket is created with its fields pre-filled
+1. A support engineer invokes the assistant on a request
+2. A Jira webhook triggers processing
+3. The full comment thread is fetched via the Jira API
+4. An LLM extracts the key fields and summarizes the thread's current state
+5. RAG retrieval identifies the most relevant documents
+6. The result is posted as an **internal** comment: summary plus documents with links
 
-No ticket is written to Jira without explicit human approval.
+Nothing is ever visible to the client. The assistant posts internal comments only, and the support engineer decides what to use.
+
+## Design principles
+
+- **On demand, not continuous.** Every invocation is an explicit signal that help is needed. No processing of threads that do not need it.
+- **Internal only.** Suggestions are for the team, never for the client.
 
 ## Architecture
 
-![Architecture overview](documentation/assets/simple_archi.jpg)
-
-*Draft architecture, subject to change.*
+![Architecture Diagram](documentation/assets/architecture.jpg)
 
 ## Stack
 
@@ -30,37 +38,27 @@ No ticket is written to Jira without explicit human approval.
 | --- | --- |
 | API | FastAPI + Pydantic |
 | LLM | Azure OpenAI or local Mistral (swappable) |
-| Embeddings | `multilingual-e5-large` |
-| Vector store | Qdrant |
+| Embeddings | HF embedding model `multilingual-e5-large` |
+| Vector store | Qdrant (swappable) |
 | Queue + state | PostgreSQL |
-| UI | Streamlit |
+| Trigger | Jira webhook |
+| Fallback UI | Streamlit |
+| Observability | Langfuse |
 | Infra | Docker Compose |
 
 ## Structure
 
 ```text
-schemas/     # Pydantic models - the shared end-to-end contract
-services/    # pure business logic (extraction, retrieval, Jira mapping)
-clients/     # swappable wrappers (LLM, embeddings, Qdrant, Jira)
-api/         # FastAPI routes
-worker/      # job processing loop
-ingestion/   # offline documentation pipeline
-db/          # Postgres models and queries
-ui/          # Streamlit review interface
+schema/        # Pydantic models - the shared end-to-end contract
+services/      # pure business logic (extraction, summarization, retrieval)
+clients/       # swappable wrappers (LLM, embeddings, Qdrant, Jira)
+api/           # FastAPI routes, webhook handler
+worker/        # job processing loop
+ingestion/     # offline documentation pipeline
+db/            # Postgres models and queries
+documentation/ # Contains all of the project generated documentation
 ```
 
 ## Getting started
 
-```bash
-cp .env.example .env     # configure LLM_PROVIDER, JIRA_*, QDRANT_*
-docker compose up
-```
-
-- API: http://localhost:8000 (docs: `/docs`)
-- Review UI: http://localhost:8501
-
-Index the documentation:
-
-```bash
-docker compose run --rm worker python -m ingestion.run --path ./docs
-```
+For local webhook development, expose the API with a tunnel (ngrok, Cloudflare Tunnel) and register the public URL in Jira.
