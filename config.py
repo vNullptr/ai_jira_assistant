@@ -3,6 +3,9 @@ import os
 
 class Settings(BaseSettings):
 
+    # JIRA
+    JIRA_DOMAIN : str 
+
     # LANGFUSE
     LANGFUSE_PUBLIC_KEY : str
     LANGFUSE_SECRET_KEY : str
