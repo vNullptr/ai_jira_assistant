@@ -5,6 +5,8 @@ class Settings(BaseSettings):
 
     # JIRA
     JIRA_DOMAIN : str 
+    JIRA_API_TOKEN : str
+    JIRA_AUTH_MAIL : str
 
     # LANGFUSE
     LANGFUSE_PUBLIC_KEY : str
