@@ -86,7 +86,7 @@ class QdrantVectorStore(VectorStore):
             collection_name=collection_name,
             query=query_vec,
             query_filter=filter,
-            limite=top_k,
+            limit=top_k,
             search_params=hnsw_params
         )
         
