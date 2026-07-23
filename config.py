@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     JIRA_DOMAIN : str 
     JIRA_API_TOKEN : str
     JIRA_AUTH_MAIL : str
+    
+    # POSTGRES
+    POSTGRES_USER : str
+    POSTGRES_PASSWORD : str 
+    POSTGRES_DBNAME : str
 
     # LANGFUSE
     LANGFUSE_PUBLIC_KEY : str
