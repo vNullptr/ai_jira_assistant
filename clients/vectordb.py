@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field, computed_field, PrivateAttr 
+from pydantic import BaseModel, Field, PrivateAttr 
 from abc import ABC, abstractmethod
 from qdrant_client import QdrantClient, models
-from typing import Optional
 
 
 class VectorStore(BaseModel, ABC):
@@ -81,7 +80,7 @@ class QdrantVectorStore(VectorStore):
     
     def query(self, collection_name: str, query_vec: list[float], top_k: int = 1,filter : any = None, params : any = None):
         
-        hnsw_params = models.SearchParams(hnsw_ef=128, exact=False) if params is None else params
+        hnsw_params = models.SearchParams(hnsw_ef=128, exact=False) if params else params
 
         result = self._client.query_points(
             collection_name=collection_name,
