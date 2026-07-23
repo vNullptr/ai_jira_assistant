@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, computed_field, PrivateAttr 
 from abc import ABC, abstractmethod
 from qdrant_client import QdrantClient, models
+from typing import Optional
 
 
 class VectorStore(BaseModel, ABC):
@@ -32,11 +33,27 @@ class VectorStore(BaseModel, ABC):
         pass
     
     @abstractmethod
-    def query(self):
+    def query(self, collection_name: str, query_vec: list[float], top_k: int = 1, filter : any = None, params : any = None) -> any:
+        """Returns the closest k vectors.
+
+        Args:
+            collection_name (str): name of collection to query.
+            query_vec (list[float]): target search vector.
+            filter (any, optional): filter configuration. Defaults to None.
+            params (any, optional): search parameters. Defaults to None.
+        """
         pass
     
     @abstractmethod
-    def upsert(self):
+    def upsert(self, collection_name: str, id: int, vector: list[float], metadata: dict, sparse: bool = False):
+        """Upsert the given vector.
+
+        Args:
+            collection_name (str): name of the collection to upsert.
+            id (int): id to give the vector ( has to be unique ).
+            vector (list[float]): vector to upsert.
+            metadata (dict): metadata to attach to the vector.
+        """
         pass
 
 
@@ -60,17 +77,36 @@ class QdrantVectorStore(VectorStore):
         return None
     
     def get_collection(self, collection_name: str):
-        pass
+        return None
     
-    def query(self):
-        pass
+    def query(self, collection_name: str, query_vec: list[float], top_k: int = 1,filter : any = None, params : any = None):
+        
+        hnsw_params = models.SearchParams(hnsw_ef=128, exact=False) if params is None else params
+
+        result = self._client.query_points(
+            collection_name=collection_name,
+            query=query_vec,
+            query_filter=filter,
+            limite=top_k,
+            search_params=hnsw_params
+        )
+        
+        return result
     
-    def upsert(self):
-        pass
-    
-    
-if __name__ == "__main__":
-    qvs = QdrantVectorStore(url="localhost:6333")
-    qvs.create_collection("test_collection", 100, models.Distance.COSINE)
+    def upsert(self, collection_name: str, id: int, vector: list[float], metadata: dict, sparse: bool = False, indices: list[int] = None):
+        final = models.SparseVector(
+            indices=indices,
+            values=vector) if sparse else vector
+        
+        self._client.upsert(
+            collection_name=collection_name,
+            points=[
+                models.PointStruct(
+                    id=id,
+                    payload=metadata,
+                    vector=final
+                )
+            ]
+        )
     
     
