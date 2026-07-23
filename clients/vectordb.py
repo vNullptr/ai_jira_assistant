@@ -27,7 +27,7 @@ class VectorStore(BaseModel, ABC):
             collection_name (str): the name of the collection.
             
         Returns:
-        Returns the collection handle or none if collection doesn't exist.
+            Collection: Returns the collection handle or none if collection doesn't exist.
         """
         pass
     
