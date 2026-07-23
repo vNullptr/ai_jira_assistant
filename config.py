@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     LANGFUSE_SECRET_KEY : str
     LANGFUSE_BASE_URL : str     
     
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     
     
     def model_post_init(self, context):
