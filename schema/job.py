@@ -1,12 +1,18 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
+from typing import Optional
+import datetime
+
 from schema.enums.jobstatus import JobStatus
 
+
 class Job(BaseModel):
-    uuid : UUID = Field(description="Assigned job UUID.")
+    uuid : Optional[UUID] = Field(description="Assigned job UUID.")
     issue_id : int = Field(description="Jira issue ID.")
     status : JobStatus = Field(description="Status of the job (failed, pending, processing, done)")
+    claimed_at : Optional[datetime.datetime] = Field(description="The date and time the job was claimed at.")
+    created_at : Optional[datetime.datetime] = Field(description="The date and time the job was created.")
     
     @property
     def formatted(self):
-        return (self.uuid, self.issue_id, self.status.value)
+        return (self.issue_id, self.status.value)
