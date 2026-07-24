@@ -35,7 +35,7 @@ class MistralClient(LLMClient):
     model_name : str = Field(default="mistral", frozen=True)
     temperature : float = Field(ge=0, le=2) # not on the abs because range differs from model to another
     _client : BaseChatModel = PrivateAttr()
-    langfuse_client : Optional[type[Langfuse]] = None
+    langfuse_client : Optional[Any] = None
         
     def model_post_init(self, context: Any) -> None:
         
