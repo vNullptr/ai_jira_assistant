@@ -17,7 +17,7 @@ class DatabaseClient(BaseModel, ABC):
     _client : Any = PrivateAttr()
 
     @abstractmethod
-    def exec(self, sql: str, params: tuple = None):
+    async def exec(self, sql: str, params: tuple = None):
         """Executes the passed sql with the params.
 
         Args:
@@ -27,7 +27,7 @@ class DatabaseClient(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def fetch(self) -> list:
+    async def fetch(self) -> list:
         """Fetchs previous query result.
         Returns:
             row list: list of resulting rows.
@@ -35,7 +35,7 @@ class DatabaseClient(BaseModel, ABC):
         pass
     
     @abstractmethod
-    def close(self):
+    async def close(self):
         """Closes the connection to Database"""
         pass
 
@@ -46,20 +46,22 @@ class PostgresDatabaseClient(DatabaseClient):
     port : int = 5432
     
     def model_post_init(self, context):
-        self._client = psycopg.connect(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}")
+        self._client = psycopg.AsyncConnection()(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}")
         self._cursor = self._client.cursor()
         
         return super().model_post_init(context)
     
-    def exec(self, sql: str, params: tuple = None):
-        self._cursor.execute(sql, params)
-        self._client.commit()
+    async def exec(self, sql: str, params: tuple = None):
+        await self._cursor.execute(sql, params)
+        await self._client.commit()
         
         return self
     
-    def fetch(self) -> list:
-        return self._cursor.fetchall() 
+    async def fetch(self) -> list:
+        result = await self._cursor.fetchall()
+        
+        return result 
         
         
-    def close(self):
-        self._client.close()
+    async def close(self):
+        await self._client.close()
