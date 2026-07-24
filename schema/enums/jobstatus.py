@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import StrEnum
 
-class JobStatus(Enum):
+class JobStatus(StrEnum):
     FAILED = 'failed'
     PENDING = 'pending'
     PROCESSING = 'processing'
