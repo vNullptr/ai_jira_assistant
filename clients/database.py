@@ -1,20 +1,27 @@
 from pydantic import BaseModel, Field, PrivateAttr
 from abc import ABC, abstractmethod
 from typing import Any
-import psycopg 
+import psycopg
+from psycopg.rows import dict_row
 
 from config import Settings
 
 settings = Settings()
 
 class DatabaseClient(BaseModel, ABC):
-    host : str = Field(description="Database server hostname.")
+    host : str = Field(description="Database server hostname.", default="localhost")
     port : int = Field(description="Database server post.")
     user : str = Field(description="Database server user.")
     password : str = Field(description="Database server user password.")
     dbname : str = Field(description="Database name.")
     
     _client : Any = PrivateAttr()
+
+    @abstractmethod
+    async def connect(self):
+        """Connects to the database.
+        """
+        pass
 
     @abstractmethod
     async def exec(self, sql: str, params: tuple = None):
@@ -43,13 +50,11 @@ class DatabaseClient(BaseModel, ABC):
 class PostgresDatabaseClient(DatabaseClient):
     _client : psycopg.Connection = PrivateAttr()
     _cursor : psycopg.Cursor = PrivateAttr()
-    port : int = 5432
+    port : int = Field(description="Database server post.", default=5432)
     
-    def model_post_init(self, context):
-        self._client = psycopg.AsyncConnection()(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}")
-        self._cursor = self._client.cursor()
-        
-        return super().model_post_init(context)
+    async def connect(self):
+        self._client = await psycopg.AsyncConnection.connect(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}")
+        self._cursor = self._client.cursor(row_factory=dict_row)
     
     async def exec(self, sql: str, params: tuple = None):
         await self._cursor.execute(sql, params)
