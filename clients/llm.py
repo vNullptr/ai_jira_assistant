@@ -37,7 +37,7 @@ class MistralClient(LLMClient):
     _client : BaseChatModel = PrivateAttr()
     langfuse_client : Optional[type[Langfuse]] = None
         
-    def model_post_init(self, context: any) -> None:
+    def model_post_init(self, context: Any) -> None:
         
         self._client = ChatOllama(
             model=self.model_name,

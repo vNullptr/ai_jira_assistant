@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, PrivateAttr 
 from abc import ABC, abstractmethod
 from qdrant_client import QdrantClient, models
+from typing import Any
 
 
 class VectorStore(BaseModel, ABC):
@@ -9,7 +10,7 @@ class VectorStore(BaseModel, ABC):
     url : str = Field(description="Used to communicate with the specific vector db.")
     
     @abstractmethod
-    def create_collection(self, collection_name: str, vec_size: int, metric: any):
+    def create_collection(self, collection_name: str, vec_size: int, metric: Any):
         """Creates a collection in vector store.
 
         Args:
@@ -32,14 +33,14 @@ class VectorStore(BaseModel, ABC):
         pass
     
     @abstractmethod
-    def query(self, collection_name: str, query_vec: list[float], top_k: int = 1, filter : any = None, params : any = None) -> any:
+    def query(self, collection_name: str, query_vec: list[float], top_k: int = 1, filter : Any = None, params : Any = None) -> Any:
         """Returns the closest k vectors.
 
         Args:
             collection_name (str): name of collection to query.
             query_vec (list[float]): target search vector.
-            filter (any, optional): filter configuration. Defaults to None.
-            params (any, optional): search parameters. Defaults to None.
+            filter (Any, optional): filter configuration. Defaults to None.
+            params (Any, optional): search parameters. Defaults to None.
         """
         pass
     
@@ -78,7 +79,7 @@ class QdrantVectorStore(VectorStore):
     def get_collection(self, collection_name: str):
         return None
     
-    def query(self, collection_name: str, query_vec: list[float], top_k: int = 1,filter : any = None, params : any = None):
+    def query(self, collection_name: str, query_vec: list[float], top_k: int = 1,filter : Any = None, params : Any = None):
         
         hnsw_params = models.SearchParams(hnsw_ef=128, exact=False) if params else params
 
