@@ -1,22 +1,18 @@
 from pydantic import BaseModel, Field
 from clients.database import  DatabaseClient, PostgresDatabaseClient
-import uuid
+import uuid, asyncio
 
 from schema.job import Job
-from schema.enums.jobstatus import JobStatus
+from schema.enums import *
 
 class JobQueue(BaseModel):
     database_client : DatabaseClient = Field(description="Database client used to establish connection and query.")
     
-    def model_post_init(self, context):
-        runner = asyncio.Runner(loop_factory=asyncio.WindowsSelectorEventLoopPolicy().new_event_loop)
-        runner.run(self.database_client.connect())
-        
-        return super().model_post_init(context)
-    
     async def init(self):
         """Initializes the queue by creating types and tables if missing.
         """
+        
+        await self.database_client.connect()
         
         await self.database_client.exec("SELECT 1 FROM pg_type WHERE typname='processing_status'")
         type_check = await self.database_client.fetch() 
@@ -30,7 +26,9 @@ class JobQueue(BaseModel):
         await self.database_client.exec("""
             CREATE TABLE IF NOT EXISTS queue(
                 uuid UUID PRIMARY KEY default gen_random_uuid(), 
-                issue_id INT NOT NULL,
+                issue_key TEXT NOT NULL,
+                comment_id TEXT NOT NULL,
+                author TEXT NOT NULL,
                 status PROCESSING_STATUS NOT NULL DEFAULT 'pending',
                 claimed_at TIMESTAMP DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT now()
@@ -41,6 +39,7 @@ class JobQueue(BaseModel):
             CREATE INDEX IF NOT EXISTS queue_indexes
             ON queue (claimed_at, created_at, status)
             """)
+        
     
     async def head(self, status : JobStatus) -> Job:
         """Gets the oldest entry of the specified status.
@@ -119,29 +118,15 @@ class JobQueue(BaseModel):
         
         return [Job(**occ) for occ in result]
     
-    async def queue(self, issue_id: int):
+    async def queue(self, issue_key: str, comment_id: str, author: str):
         """Insert a new job to the queue.
 
         Args:
             issue_id (int): Job containing issue id and status.
         """
-        await self.database_client.exec("INSERT INTO queue(issue_id) VALUES (%s)", (issue_id,))
+        await self.database_client.exec("INSERT INTO queue(issue_key, comment_id, author) VALUES (%s, %s, %s)", (issue_key, comment_id, author))
         
     
-if __name__ == "__main__":
-    from config import Settings
-    import asyncio
-    settings = Settings()
-    
-    pgdc = PostgresDatabaseClient(user=settings.POSTGRES_USER, password=settings.POSTGRES_PASSWORD, dbname=settings.POSTGRES_DBNAME)
-    jq = JobQueue(database_client=pgdc) 
-    
-    async def do():    
-        await jq.init()
-        await jq.queue(100065)
         
-    runner = asyncio.Runner(loop_factory=asyncio.WindowsSelectorEventLoopPolicy().new_event_loop)
-    runner.run(do())
-    
-        
-    
+    async def sweep(self):
+        pass
