@@ -1,10 +1,8 @@
 from pydantic import BaseModel, Field, PrivateAttr
 from abc import ABC, abstractmethod
+from typing import Any
 import psycopg 
-from uuid import UUID, uuid4
 
-from schema.enums.jobstatus import JobStatus
-from schema.job import Job
 from config import Settings
 
 settings = Settings()
@@ -12,10 +10,11 @@ settings = Settings()
 class DatabaseClient(BaseModel, ABC):
     host : str = Field(description="Database server hostname.")
     port : int = Field(description="Database server post.")
-    user : str = Field(description="Database user.")
-    password : str = Field(description="Database user password.")
+    user : str = Field(description="Database server user.")
+    password : str = Field(description="Database server user password.")
+    dbname : str = Field(description="Database name.")
     
-    _client : any = PrivateAttr()
+    _client : Any = PrivateAttr()
 
     @abstractmethod
     def exec(self, sql: str, params: tuple = None):
@@ -47,7 +46,7 @@ class PostgresDatabaseClient(DatabaseClient):
     port : int = 5432
     
     def model_post_init(self, context):
-        self._client = psycopg.connect(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/jira_assistant_queue")
+        self._client = psycopg.connect(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}")
         self._cursor = self._client.cursor()
         
         return super().model_post_init(context)
