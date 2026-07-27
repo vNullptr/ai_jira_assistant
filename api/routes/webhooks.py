@@ -18,7 +18,10 @@ router = APIRouter(
 async def trigger(request : Request):
     body = await request.json()
 
-    if not body["comment"]["jsdPublic"]:
+    # second check
+    print(body["comment"]["body"].strip(""))
+    print(body["comment"]["body"])
+    if not body["comment"]["jsdPublic"] and body["comment"]["body"].strip("") == "/assist":
         await jq.init()
         await jq.queue(
             issue_key=body["issue"]["key"],
