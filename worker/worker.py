@@ -33,7 +33,7 @@ class Worker(BaseModel):
             await self.next()
             
             if not self.current_job: 
-                asyncio.sleep(2)
+                await asyncio.sleep(2)
                 continue
             
             try:
