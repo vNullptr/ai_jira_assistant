@@ -13,6 +13,7 @@ class Job(BaseModel):
     author : str = Field(description="Author of the comment.")
     status : JobStatus = Field(description="Status of the job (failed, pending, processing, done)")
     claimed_at : Optional[datetime.datetime] = Field(description="The date and time the job was claimed at.")
+    finished_at : Optional[datetime.datetime] = Field(description="The date and time the job was finished at.")
     created_at : Optional[datetime.datetime] = Field(description="The date and time the job was created.")
     
     @property
