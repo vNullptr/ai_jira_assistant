@@ -9,7 +9,8 @@ from langfuse import observe
 
 class EmbeddingClient(BaseModel, ABC):
     
-    model_name: str = Field(description="Embedding model name.")
+    model_name: str = Field(description="Embedding model name.", frozen=True)
+    _dimension: int = PrivateAttr(default=None)
     _client : Embeddings = PrivateAttr()
     
     @abstractmethod
@@ -34,13 +35,21 @@ class EmbeddingClient(BaseModel, ABC):
         Returns:
             output (dict["vector", "metadata"]): Returns a dict with the vector and the metadata.d
         """
+        
+    def get_dimension(self) -> int:
+        """Embeds a small string to retrieve the embedding model dimension.
+
+        Returns:
+            output (int): Dimension of the embedding model. 
+        """
+        pass
     
     
 class HFEmbeddingClient(EmbeddingClient):
     
     def model_post_init(self, context):
         self._client = HuggingFaceEmbeddings(
-            model_name=self.model_name
+            model_name=self.model_name,
         )
         
         return super().model_post_init(context)
@@ -57,5 +66,10 @@ class HFEmbeddingClient(EmbeddingClient):
         
         return {"content": result, "metadata": input.metadata}
             
-            
+    def get_dimension(self) -> int:
+        result = self.embed_query("Hello World!")
         
+        if not self._dimension:
+            self._dimension = len(result)
+        
+        return self._dimension        
