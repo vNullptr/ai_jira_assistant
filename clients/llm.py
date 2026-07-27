@@ -1,18 +1,14 @@
 from pydantic import BaseModel, Field, PrivateAttr
-from typing import Optional, ClassVar, List, Any
+from typing import Optional, List, Any
 from abc import ABC, abstractmethod
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages.ai import AIMessage
-from langfuse import observe, get_client, Langfuse
-
-from config import Settings
+from langfuse import observe, get_client
 
 class LLMClient(BaseModel, ABC):
     model_name : str = Field()
-    # TODO : Useless here needs to be moved elsewhere
-    settings : ClassVar = Settings() 
     tools : List[Any] = []
     
     @abstractmethod
