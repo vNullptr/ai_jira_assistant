@@ -3,11 +3,11 @@ from typing import Optional
 
 from services.jobqueue import JobQueue
 from clients.database import DatabaseClient
-from clients.jira import JiraClient
+from clients.jira import JiraClient, format_issue_thread
 from clients.llm import LLMClient
 from schema.enums import *
 from schema.job import Job
-import time
+from langfuse import observe
 
 class Worker(BaseModel):
     database_client : DatabaseClient = Field(description="Database client used to establish connection and manage queue.")
@@ -40,22 +40,24 @@ class Worker(BaseModel):
         if (not self.current_job) and self.status == WorkerStatus.AVAILABLE:
             self.current_job = await self._jobqueue.head(JobStatus.PENDING)
             #await self._jobqueue.update_status(self.current_job.uuid, JobStatus.PROCESSING)
-            
+    
+    @observe(name="Processing Chain", as_type="chain")        
     async def process(self):
         """Processes current claimed job.
         """
         if self.status == WorkerStatus.AVAILABLE and self.current_job:
             self.status = WorkerStatus.PROCESSING
                 
+            issue_thread = await self.jira_client.get_issue(self.current_job.issue_key)
+        
             response = await self.jira_client.comment_issue(self.current_job.issue_key, "Processing...")
-        
-            comments = await self.jira_client.get_issue(self.current_job.issue_key)
-            # format > template > chain > answer
-            # status back to availabe
-            #if comments:
-            #    print(comments)    
-        
-            await self.jira_client.update_comment(self.current_job.issue_key, response["id"], "Processed !")
+            
+            # format >
+            formatted_thread = format_issue_thread(issue_thread)
+            # template > chain > answer
+            answer = self.llm_client.prompt("issue-thread-prompt", {"thread":formatted_thread})
+            
+            await self.jira_client.update_comment(self.current_job.issue_key, response["id"], answer.content)
             
             self.status = WorkerStatus.AVAILABLE
             
