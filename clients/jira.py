@@ -1,6 +1,7 @@
 from pydantic import BaseModel, PrivateAttr, Field, computed_field, field_validator
 from abc import ABC, abstractmethod
 import httpx, json
+from langfuse import observe
 
 class JiraClient(BaseModel, ABC):
     """Jira Client used to communicate with a project."""
@@ -76,7 +77,7 @@ class JiraAPIClient(JiraClient):
     async def get_issue(self, issue_key: str) -> list:
         response = await self._client.get(f"issue/{issue_key}")
         # TODO: Handling wrong status code with tenacity retry
-        if response.status_code == 200:
+        if response.status_code == 200:     
             return json.loads(response.content)
         
     async def comment_issue(self, issue_key: str, content: str):
@@ -141,6 +142,34 @@ class JiraAPIClient(JiraClient):
         
         response = await self._client.put(f"issue/{issue_key}/comment/{comment_id}",data=payload)
         
-        if response.status_code == 200:
-            return json.loads(response)
+        if response.status_code == 200: 
+            return json.loads(response.content)
         
+
+def adf_to_txt(node):
+    if isinstance(node, dict):
+        if node.get("type") == "text":
+            text = node.get("text", "") 
+            if text.strip() != "/assist":
+                return node.get("text", "")
+        return "".join(adf_to_txt(c) for c in node.get("content",[]))
+    if isinstance(node, list):
+        return "".join(adf_to_txt(c) for c in node)
+    return ""
+
+
+@observe(name="Issue Formatting", as_type="tool")
+def format_issue_thread(thread_json: dict):    
+    result = ""
+
+    # TODO: compare id with own id ( unless we want to use previous output )
+    result += f"THREAD TITLE : {thread_json["fields"]["summary"]}\n"
+    result += f"THREAD CREATED ON {thread_json["fields"]["created"]}\n"
+    for content in thread_json["fields"]["description"]["content"]:
+        if content["type"] == "paragraph":
+            result += f"THREAD DESCRIPTION : {adf_to_txt(content["content"])}\n"
+
+    for comment in thread_json["fields"]["comment"]["comments"]:
+        result += f"\n[{comment["author"]["displayName"]}] - {comment["created"]}\n{adf_to_txt(comment["body"]["content"])}\n"
+    
+    return result
