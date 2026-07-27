@@ -31,6 +31,7 @@ class JobQueue(BaseModel):
                 author TEXT NOT NULL,
                 status PROCESSING_STATUS NOT NULL DEFAULT 'pending',
                 claimed_at TIMESTAMP DEFAULT NULL,
+                finished_at TIMESTAMP DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT now()
             )""")
         
@@ -104,6 +105,8 @@ class JobQueue(BaseModel):
                 timestamp = ", claimed_at = now()"
             case JobStatus.PENDING:
                 timestamp = ", claimed_at = NULL"
+            case JobStatus.DONE:
+                timestamp = ", finished_at = now()"
             
         await self.database_client.exec(f"UPDATE queue SET status = %s {timestamp} WHERE uuid = %s", (status.value, str(uuid)))
     
@@ -129,4 +132,5 @@ class JobQueue(BaseModel):
     
         
     async def sweep(self):
+        # TODO
         pass
