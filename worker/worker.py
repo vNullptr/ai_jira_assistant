@@ -25,8 +25,21 @@ class Worker(BaseModel):
     async def start(self):
         """Initializes the worker.
         """
-        # TODO: initializing sanity check.
+        # TODO: initializing + sanity check.
         await self._jobqueue.init()
+        await self._jobqueue.sweep()
+        
+        while True:
+            await self.next()
+            
+            if not self.current_job: 
+                asyncio.sleep(2)
+                continue
+            
+            try:
+                await self.process()
+            except Exception as e:
+                await self._jobqueue.update_status(self.current_job.uuid, JobStatus.FAILED)
     
     def pause(self):
         pass
@@ -39,7 +52,8 @@ class Worker(BaseModel):
         """
         if (not self.current_job) and self.status == WorkerStatus.AVAILABLE:
             self.current_job = await self._jobqueue.head(JobStatus.PENDING)
-            #await self._jobqueue.update_status(self.current_job.uuid, JobStatus.PROCESSING)
+            if self.current_job:
+                await self._jobqueue.update_status(self.current_job.uuid, JobStatus.PROCESSING)
     
     @observe(name="Processing Chain", as_type="chain")        
     async def process(self):
@@ -58,7 +72,9 @@ class Worker(BaseModel):
             answer = self.llm_client.prompt("issue-thread-prompt", {"thread":formatted_thread})
             
             await self.jira_client.update_comment(self.current_job.issue_key, response["id"], answer.content)
+            await self._jobqueue.update_status(self.current_job.uuid, JobStatus.DONE)
             
+            self.current_job = None
             self.status = WorkerStatus.AVAILABLE
             
             
@@ -82,8 +98,6 @@ if __name__ == "__main__":
     
     runner = asyncio.Runner(loop_factory=asyncio.WindowsSelectorEventLoopPolicy().new_event_loop)
     runner.run(worker.start())
-    runner.run(worker.next())
-    runner.run(worker.process())
             
             
               
