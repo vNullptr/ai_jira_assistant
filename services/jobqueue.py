@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from clients.database import  DatabaseClient, PostgresDatabaseClient
-import uuid, asyncio
+import uuid, datetime
 
 from schema.job import Job
 from schema.enums import *
@@ -132,5 +132,9 @@ class JobQueue(BaseModel):
     
         
     async def sweep(self):
-        # TODO
-        pass
+        #TODO: refactor when concurrency implemented
+        result = await self.get_jobs_by_status(JobStatus.PROCESSING)
+        
+        for job in result:
+            await self.update_status(job.uuid, JobStatus.PENDING)
+        
