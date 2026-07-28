@@ -17,7 +17,35 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  api:
+    image: jira-assistant/dev:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=postgres
+    command: ["uvicorn", "api.main:client", "--host", "0.0.0.0", "--port", "8000"]
+    
+  ollama-mistral:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./run_ollama_mistral.sh:/scripts/run_ollama_mistral.sh:ro
+      - ollama_data:/root/.ollama
+    entrypoint: ["/bin/bash", "/scripts/run_ollama_mistral.sh"]
+
+  worker:
+    image: jira-assistant/dev:latest
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=postgres
+    command: ["python","-m","worker.main"]
+
 
 volumes:
   pgdata:
   qdrant_data:
+  ollama_data:
