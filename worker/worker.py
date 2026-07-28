@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, PrivateAttr
 from typing import Optional
+import asyncio
 
 from services.jobqueue import JobQueue
 from clients.database import DatabaseClient
@@ -32,11 +33,12 @@ class Worker(BaseModel):
         while True:
             await self.next()
             
-            if not self.current_job: 
+            if not self.current_job:
                 await asyncio.sleep(2)
                 continue
             
             try:
+                print(f"[WORKER] job found (id:{self.current_job.uuid})")
                 await self.process()
             except Exception as e:
                 await self._jobqueue.update_status(self.current_job.uuid, JobStatus.FAILED)
@@ -66,38 +68,19 @@ class Worker(BaseModel):
         
             response = await self.jira_client.comment_issue(self.current_job.issue_key, "Processing...")
             
-            # format >
             formatted_thread = format_issue_thread(issue_thread)
             # template > chain > answer
             answer = self.llm_client.prompt("issue-thread-prompt", {"thread":formatted_thread})
             
-            await self.jira_client.update_comment(self.current_job.issue_key, response["id"], answer.content)
+            upd_response = await self.jira_client.update_comment(self.current_job.issue_key, response["id"], answer.content)
+            # returns None if 404 ("Processing..." comment not found)
+            if not upd_response:
+                await self.jira_client.comment_issue(self.current_job.issue_key, answer.content)
+            
             await self._jobqueue.update_status(self.current_job.uuid, JobStatus.DONE)
             
             self.current_job = None
             self.status = WorkerStatus.AVAILABLE
-            
-            
-# testing
-if __name__ == "__main__":
-    from clients.jira import JiraAPIClient
-    from clients.database import PostgresDatabaseClient
-    from clients.llm import MistralClient
-    from langfuse import get_client
-    from config import Settings
-    import asyncio
-    
-    settings = Settings()
-    lf_client = get_client()
-    
-    jac = JiraAPIClient(domain=settings.JIRA_DOMAIN, auth_mail=settings.JIRA_AUTH_MAIL, api_token=settings.JIRA_API_TOKEN)
-    pdc = PostgresDatabaseClient(user=settings.POSTGRES_USER, password=settings.POSTGRES_PASSWORD, dbname=settings.POSTGRES_DBNAME)
-    mc = MistralClient(langfuse_client=lf_client, temperature=0)
-    
-    worker = Worker(database_client=pdc, jira_client=jac, llm_client=mc)
-    
-    runner = asyncio.Runner(loop_factory=asyncio.WindowsSelectorEventLoopPolicy().new_event_loop)
-    runner.run(worker.start())
             
             
               
