@@ -59,7 +59,7 @@ class JiraAPIClient(JiraClient):
             auth=httpx.BasicAuth(self.auth_mail, self.api_token),
             headers={
                 'Accept': 'application/json',
-                "Content-Type": "application/json"
+                'Content-Type': 'application/json'
             }
         )
         return super().model_post_init(context)
@@ -78,7 +78,9 @@ class JiraAPIClient(JiraClient):
         response = await self._client.get(f"issue/{issue_key}")
         # TODO: Handling wrong status code with tenacity retry
         if response.status_code == 200:     
-            return json.loads(response.content)
+            return response.json()
+        
+        response.raise_for_status()
         
     async def comment_issue(self, issue_key: str, content: str):
         payload = json.dumps({
@@ -110,7 +112,9 @@ class JiraAPIClient(JiraClient):
         response = await self._client.post(f"issue/{issue_key}/comment",data=payload)
         
         if response.status_code == 201:
-            return json.loads(response.content)
+            return response.json()
+        
+        response.raise_for_status()
         
     
     async def update_comment(self, issue_key: str, comment_id: str, content: str):
@@ -143,7 +147,11 @@ class JiraAPIClient(JiraClient):
         response = await self._client.put(f"issue/{issue_key}/comment/{comment_id}",data=payload)
         
         if response.status_code == 200: 
-            return json.loads(response.content)
+            return response.json
+        elif response.status_code == 404:
+            return None
+        
+        response.raise_for_status()
         
 
 def adf_to_txt(node):
