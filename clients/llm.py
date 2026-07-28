@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, computed_field
 from typing import Optional, List, Any
 from abc import ABC, abstractmethod
 from langchain_ollama import ChatOllama
@@ -9,6 +9,7 @@ from langfuse import observe, get_client
 
 class LLMClient(BaseModel, ABC):
     model_name : str = Field()
+    temperature : float = Field(ge=0, le=2)
     tools : List[Any] = []
     
     @abstractmethod
@@ -29,16 +30,27 @@ class MistralClient(LLMClient):
     """Client for ollama Mistral model"""
     
     model_name : str = Field(default="mistral", frozen=True)
-    temperature : float = Field(ge=0, le=2) # not on the abs because range differs from model to another
+    temperature : float = Field(ge=0, le=2)
+    base_url : str = Field(description="base url ollama is hosted on.", default="localhost:11434")
     _client : BaseChatModel = PrivateAttr()
     langfuse_client : Optional[Any] = None
+    
+    @field_validator("base_url")
+    @classmethod
+    def strip_scheme(cls, v: str) -> str:
+        return v.removeprefix("https://").removeprefix("http://").rstrip("/")
+    
+    @computed_field
+    @property
+    def formatted_url(self) -> str:
+        return f"http://{self.base_url}"
         
     def model_post_init(self, context: Any) -> None:
         
         self._client = ChatOllama(
             model=self.model_name,
             temperature=self.temperature,
-            validate_model_on_init=True,
+            base_url=self.formatted_url
         )
         if not self.langfuse_client:
             self.langfuse_client = get_client()
