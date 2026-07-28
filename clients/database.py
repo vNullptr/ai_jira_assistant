@@ -24,12 +24,13 @@ class DatabaseClient(BaseModel, ABC):
         pass
 
     @abstractmethod
-    async def exec(self, sql: str, params: tuple = None):
+    async def exec(self, sql: str, params: tuple = None, commit: bool=True):
         """Executes the passed sql with the params.
 
         Args:
             sql (str): sql query.
-            params (tuple): params
+            params (tuple): params.
+            commit (bool): if it should commit the transaction or not. Default True.
         """
         pass
 
@@ -38,6 +39,12 @@ class DatabaseClient(BaseModel, ABC):
         """Fetchs previous query result.
         Returns:
             row list: list of resulting rows.
+        """
+        pass
+    
+    @abstractmethod
+    async def manual_commit(self):
+        """Manually commits a transaction.
         """
         pass
     
@@ -56,9 +63,10 @@ class PostgresDatabaseClient(DatabaseClient):
         self._client = await psycopg.AsyncConnection.connect(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}")
         self._cursor = self._client.cursor(row_factory=dict_row)
     
-    async def exec(self, sql: str, params: tuple = None):
+    async def exec(self, sql: str, params: tuple = None, commit=True):
         await self._cursor.execute(sql, params)
-        await self._client.commit()
+        if commit:
+            await self._client.commit()
         
         return self
     
@@ -66,6 +74,9 @@ class PostgresDatabaseClient(DatabaseClient):
         result = await self._cursor.fetchall()
         
         return result 
+    
+    async def manual_commit(self):
+        await self._client.commit()
         
         
     async def close(self):
