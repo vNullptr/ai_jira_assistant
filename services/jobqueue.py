@@ -57,6 +57,26 @@ class JobQueue(BaseModel):
         if result: 
             return Job(**result[0])
         
+        return None 
+    
+    async def claim_head(self, status : JobStatus) -> Job:
+        """Claims the head by locking thw row until status is updating to avoid concurrent processing.
+        
+        Args:
+            status (JobStatus): Status to filter with.
+
+        Returns:
+            Job (Job): Constructed Job object if occurence found other wise returns None. 
+        """
+        await self.database_client.exec("""
+                UPDATE queue SET status=%s, claimed_at=now() 
+                WHERE uuid=(SELECT uuid FROM queue WHERE status=%s ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) 
+                RETURNING *;""", (JobStatus.PROCESSING.value, status.value))
+        result = await self.database_client.fetch()
+        
+        if result: 
+            return Job(**result[0])
+        
         return None
     
     async def get_job_by_uuid(self, uuid : uuid.UUID) -> Job:
