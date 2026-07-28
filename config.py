@@ -13,7 +13,10 @@ class Settings(BaseSettings):
     POSTGRES_USER : str
     POSTGRES_PASSWORD : str 
     POSTGRES_DBNAME : str
-
+    
+    # LLM
+    MODEL_BASE_URL: str
+    
     # LANGFUSE
     LANGFUSE_PUBLIC_KEY : str
     LANGFUSE_SECRET_KEY : str
