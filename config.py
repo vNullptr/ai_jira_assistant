@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     JIRA_AUTH_MAIL : str
     
     # POSTGRES
+    POSTGRES_HOST: str
     POSTGRES_USER : str
     POSTGRES_PASSWORD : str 
     POSTGRES_DBNAME : str
