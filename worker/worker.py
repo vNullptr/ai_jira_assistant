@@ -47,15 +47,13 @@ class Worker(BaseModel):
         pass
     
     def end(self):
-        pass
+        self.database_client.close()
     
     async def next(self):
         """Claims next pending job.
         """
         if (not self.current_job) and self.status == WorkerStatus.AVAILABLE:
-            self.current_job = await self._jobqueue.head(JobStatus.PENDING)
-            if self.current_job:
-                await self._jobqueue.update_status(self.current_job.uuid, JobStatus.PROCESSING)
+            self.current_job = await self._jobqueue.claim_head(JobStatus.PENDING)
     
     @observe(name="Processing Chain", as_type="chain")        
     async def process(self):
