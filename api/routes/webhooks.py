@@ -2,12 +2,12 @@ from fastapi import APIRouter, Response, Request
 
 from services.jobqueue import *
 from config import Settings
-import asyncio
+import asyncio, sys
 
 
 settings = Settings()
-runner = asyncio.Runner(loop_factory=asyncio.WindowsSelectorEventLoopPolicy().new_event_loop)
-pgdc = PostgresDatabaseClient(user=settings.POSTGRES_USER, password=settings.POSTGRES_PASSWORD, dbname=settings.POSTGRES_DBNAME)
+runner = asyncio.Runner()
+pgdc = PostgresDatabaseClient(host=settings.POSTGRES_HOST,  user=settings.POSTGRES_USER, password=settings.POSTGRES_PASSWORD, dbname=settings.POSTGRES_DBNAME)
 jq = JobQueue(database_client=pgdc)
 
 router = APIRouter(
@@ -18,9 +18,6 @@ router = APIRouter(
 async def trigger(request : Request):
     body = await request.json()
 
-    # second check
-    print(body["comment"]["body"].strip(""))
-    print(body["comment"]["body"])
     if not body["comment"]["jsdPublic"] and body["comment"]["body"].strip("") == "/assist":
         await jq.init()
         await jq.queue(
