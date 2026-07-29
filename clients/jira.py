@@ -189,6 +189,8 @@ def format_issue_thread(thread_json: dict):
             result += f"THREAD DESCRIPTION : {adf_to_txt(content.get("content"))}\n"
 
     for comment in fields.get("comment", {}).get("comments"):
-        result += f"\n[{comment.get("author", {}).get("displayName")}] - {comment.get("created")}\n{adf_to_txt(comment.get("body", {}).get("content"))}\n"
+        text = adf_to_txt(comment.get("body", {}).get("content"))
+        if len(text):
+            result += f"\n[{comment.get("author", {}).get("displayName")}] - {comment.get("created")}\n{text}\n"
     
     return result
