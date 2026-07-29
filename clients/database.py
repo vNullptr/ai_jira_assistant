@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 import psycopg
 from psycopg.rows import dict_row
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from config import Settings
 
@@ -59,6 +60,7 @@ class PostgresDatabaseClient(DatabaseClient):
     _cursor : psycopg.Cursor = PrivateAttr()
     port : int = Field(description="Database server post.", default=5432)
     
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(1, 30), reraise=True)
     async def connect(self):
         self._client = await psycopg.AsyncConnection.connect(f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}")
         self._cursor = self._client.cursor(row_factory=dict_row)
