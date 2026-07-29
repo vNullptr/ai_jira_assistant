@@ -1,11 +1,15 @@
 from pydantic import BaseModel, Field, PrivateAttr, field_validator, computed_field
-from typing import Optional, List, Any
+from typing import List, Any
 from abc import ABC, abstractmethod
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages.ai import AIMessage
 from langfuse import observe, get_client
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import httpx
+
+from schema.exceptions import RetryableException
 
 class LLMClient(BaseModel, ABC):
     model_name : str = Field()
@@ -33,7 +37,7 @@ class MistralClient(LLMClient):
     temperature : float = Field(ge=0, le=2)
     base_url : str = Field(description="base url ollama is hosted on.", default="localhost:11434")
     _client : BaseChatModel = PrivateAttr()
-    langfuse_client : Optional[Any] = None
+    langfuse_client : Any = None
     
     @field_validator("base_url")
     @classmethod
@@ -58,6 +62,7 @@ class MistralClient(LLMClient):
         if len(self.tools):
             self._client.bind_tools(self.tools)
 
+    @retry(stop=stop_after_attempt(4), wait=wait_exponential(1, min=10, max=40),  retry=retry_if_exception_type(RetryableException), reraise=True)
     @observe(name="Mistral Prompt", as_type="generation")
     def prompt(self, prompt_template_name : str, prompt_content : dict = None) -> AIMessage:
         
@@ -67,9 +72,13 @@ class MistralClient(LLMClient):
             prompt=prompt_template
         )
         
+        
         chain = (ChatPromptTemplate(prompt_template.get_langchain_prompt())
             | self._client)
-        result = chain.invoke(prompt_content)
         
+        try:
+            result = chain.invoke(prompt_content)
+        except httpx.ConnectError as e:
+            raise RetryableException("[LLM] Couldn't reach LLM server : ", e)
         
         return result 
