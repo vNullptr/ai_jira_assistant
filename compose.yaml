@@ -9,13 +9,20 @@ services:
       - pgdata:/var/lib/postgresql/18/docker
     ports:
       - "5432:5432"
-  
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   qdrant:
     image: qdrant/qdrant
     ports:
       - "6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
+    restart: unless-stopped
 
   api:
     image: jira-assistant/dev:latest
@@ -25,16 +32,24 @@ services:
       - .env
     environment:
       - POSTGRES_HOST=postgres
-    command: ["uvicorn", "api.main:client", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
     
   ollama-mistral:
-    image: ollama/ollama:latest
+    image: ollama/ollama
     ports:
       - "11434:11434"
     volumes:
       - ./run_ollama_mistral.sh:/scripts/run_ollama_mistral.sh:ro
       - ollama_data:/root/.ollama
     entrypoint: ["/bin/bash", "/scripts/run_ollama_mistral.sh"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   worker:
     image: jira-assistant/dev:latest
@@ -43,6 +58,12 @@ services:
     environment:
       - POSTGRES_HOST=postgres
     command: ["python","-m","worker.main"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama-mistral:
+        condition: service_healthy
 
 
 volumes:
