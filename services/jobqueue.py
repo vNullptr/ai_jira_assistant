@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
-from clients.database import  DatabaseClient, PostgresDatabaseClient
-import uuid, datetime
+from clients.database import  DatabaseClient, PostgresDatabaseClient # for webhook import
+import uuid
 
 from schema.job import Job
 from schema.enums import *
@@ -124,7 +124,9 @@ class JobQueue(BaseModel):
             case JobStatus.PROCESSING:
                 timestamp = ", claimed_at = now()"
             case JobStatus.PENDING:
-                timestamp = ", claimed_at = NULL"
+                # TODO: might add a attempts column and order using it.
+                # this is for retry logic.
+                timestamp = ", created_at = now() , claimed_at = NULL"
             case JobStatus.DONE:
                 timestamp = ", finished_at = now()"
             
