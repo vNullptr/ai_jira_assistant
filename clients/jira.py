@@ -2,6 +2,8 @@ from pydantic import BaseModel, PrivateAttr, Field, computed_field, field_valida
 from abc import ABC, abstractmethod
 import httpx, json
 from langfuse import observe
+from schema.exceptions import RetryableException, TerminalException
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 
 class JiraClient(BaseModel, ABC):
     """Jira Client used to communicate with a project."""
@@ -74,13 +76,17 @@ class JiraAPIClient(JiraClient):
     def api_url(self) -> str:
         return f"https://{self.domain}/rest/api/3"
     
+    @retry(retry=retry_if_exception_type(RetryableException), stop=stop_after_attempt(4), wait=wait_exponential(1, 15), reraise=True)
     async def get_issue(self, issue_key: str) -> list:
         response = await self._client.get(f"issue/{issue_key}")
         # TODO: Handling wrong status code with tenacity retry
         if response.status_code == 200:     
             return response.json()
+        elif response.status_code >= 500:
+            raise RetryableException("[JIRA CLIENT] Couldn't fetch issue.")
+        else:
+            raise TerminalException("[JIRA CLIENT] Couldn't fetch issue.")
         
-        response.raise_for_status()
         
     async def comment_issue(self, issue_key: str, content: str):
         payload = json.dumps({
@@ -113,8 +119,10 @@ class JiraAPIClient(JiraClient):
         
         if response.status_code == 201:
             return response.json()
-        
-        response.raise_for_status()
+        elif response.status_code >= 500:
+            return RetryableException("[JIRA CLIENT] Couldn't post comment.")
+        else:
+            return TerminalException("[JIRA CLIENT] Couldn't post comment.")
         
     
     async def update_comment(self, issue_key: str, comment_id: str, content: str):
@@ -150,8 +158,10 @@ class JiraAPIClient(JiraClient):
             return response.json
         elif response.status_code == 404:
             return None
-        
-        response.raise_for_status()
+        elif response.status_code >= 500:
+            raise RetryableException("[JIRA CLIENT] Failed to update comment.")
+        else:
+            raise TerminalException("[JIRA CLIENT] Failed updating comment.")
         
 
 def adf_to_txt(node):
@@ -171,13 +181,14 @@ def format_issue_thread(thread_json: dict):
     result = ""
 
     # TODO: compare id with own id ( unless we want to use previous output )
-    result += f"THREAD TITLE : {thread_json["fields"]["summary"]}\n"
-    result += f"THREAD CREATED ON {thread_json["fields"]["created"]}\n"
-    for content in thread_json["fields"]["description"]["content"]:
+    fields = thread_json.get("fields", {})
+    result += f"THREAD TITLE : {fields.get("summary")}\n"
+    result += f"THREAD CREATED ON {fields.get("created")}\n"
+    for content in fields.get("description",{}).get("content"):
         if content["type"] == "paragraph":
-            result += f"THREAD DESCRIPTION : {adf_to_txt(content["content"])}\n"
+            result += f"THREAD DESCRIPTION : {adf_to_txt(content.get("content"))}\n"
 
-    for comment in thread_json["fields"]["comment"]["comments"]:
-        result += f"\n[{comment["author"]["displayName"]}] - {comment["created"]}\n{adf_to_txt(comment["body"]["content"])}\n"
+    for comment in fields.get("comment", {}).get("comments"):
+        result += f"\n[{comment.get("author", {}).get("displayName")}] - {comment.get("created")}\n{adf_to_txt(comment.get("body", {}).get("content"))}\n"
     
     return result
