@@ -45,14 +45,14 @@ class VectorStore(BaseModel, ABC):
         pass
     
     @abstractmethod
-    def upsert(self, collection_name: str, id: int, vector: list[float], metadata: dict, sparse: bool = False):
-        """Upsert the given vector.
+    def upsert(self, collection_name: str, ids: list[str], vectors: list[list[float]], metadatas: list[dict]):
+        """Upserts given list of vectors.
 
         Args:
-            collection_name (str): name of the collection to upsert.
-            id (int): id to give the vector ( has to be unique ).
-            vector (list[float]): vector to upsert.
-            metadata (dict): metadata to attach to the vector.
+            collection_name (str): name of the vector store collection.
+            ids (list[str]): list of ids.
+            vectors (list[list[float]]): list of vectors.
+            metadatas (list[dict]): list of metadatas.
         """
         pass
 
@@ -93,20 +93,20 @@ class QdrantVectorStore(VectorStore):
         
         return result
     
-    def upsert(self, collection_name: str, id: int, vector: list[float], metadata: dict, sparse: bool = False, indices: list[int] = None):
-        final = models.SparseVector(
-            indices=indices,
-            values=vector) if sparse else vector
+    def upsert(self, collection_name: str, ids: list[str], vectors: list[list[float]], metadatas: list[dict]):
+
+        # TODO: should check for symmetry before
+
+        points = [
+            models.PointStruct(
+                id=id, 
+                payload=metadata, 
+                vector= vec
+            ) 
+            for id, metadata, vec in zip(ids, vectors, metadatas)]
         
         self._client.upsert(
             collection_name=collection_name,
-            points=[
-                models.PointStruct(
-                    id=id,
-                    payload=metadata,
-                    vector=final
-                )
-            ]
+            points=points
         )
-    
-    
+        
