@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from api.routes import webhooks
 
-client = FastAPI()
+app = FastAPI()
 
 # TODO : Recursive auto router include
-client.include_router(webhooks.router)
+app.include_router(webhooks.router)
 
-@client.get("/")
+@app.get("/")
 def notify():
     return {"status":"online"}
