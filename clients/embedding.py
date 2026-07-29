@@ -26,7 +26,7 @@ class EmbeddingClient(BaseModel, ABC):
         pass
     
     @abstractmethod
-    def embed_document(self, input: Document)->dict:
+    def embed_documents(self, input: list[str])->list[list[float]]:
         """Tokenizes the page_content and embeds it.
 
         Args:
@@ -61,10 +61,10 @@ class HFEmbeddingClient(EmbeddingClient):
         return result
         
     @observe(name="HFEmbeddingClient documents", as_type="embedding")
-    def embed_document(self, input: Document)-> dict:
-        result = self._client.embed_query(input.page_content)
+    def embed_documents(self, input: list[str])-> list[list[float]]:
+        result = self._client.embed_documents(input)
         
-        return {"content": result, "metadata": input.metadata}
+        return result
             
     def get_dimension(self) -> int:
         result = self.embed_query("Hello World!")
