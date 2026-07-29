@@ -9,6 +9,7 @@ from clients.llm import LLMClient
 from schema.enums import *
 from schema.job import Job
 from langfuse import observe
+from schema.exceptions import RetryableException, TerminalException 
 
 class Worker(BaseModel):
     database_client : DatabaseClient = Field(description="Database client used to establish connection and manage queue.")
@@ -38,16 +39,29 @@ class Worker(BaseModel):
                 continue
             
             try:
-                print(f"[WORKER] job found (id:{self.current_job.uuid})")
+                print(f"Job found (id:{self.current_job.uuid})")
                 await self.process()
-            except Exception as e:
+            except TerminalException as e:
                 await self._jobqueue.update_status(self.current_job.uuid, JobStatus.FAILED)
+                print("Job failed: ", e)
+                self.flush()
+            except RetryableException as e:
+                await self._jobqueue.update_status(self.current_job.uuid, JobStatus.PENDING)
+                print("Job failed placed at the back of queue: ", e)
+                self.flush()
+                
     
     def pause(self):
         pass
     
     def end(self):
         self.database_client.close()
+        
+    def flush(self):
+        """Flush current state of worker resetting current job and restoring status to available.
+        """
+        self.current_job = None
+        self.status = WorkerStatus.AVAILABLE
     
     async def next(self):
         """Claims next pending job.
@@ -69,14 +83,15 @@ class Worker(BaseModel):
             formatted_thread = format_issue_thread(issue_thread)
             # template > chain > answer
             answer = self.llm_client.prompt("issue-thread-prompt", {"thread":formatted_thread})
-            
+                
             upd_response = await self.jira_client.update_comment(self.current_job.issue_key, response["id"], answer.content)
             # returns None if 404 ("Processing..." comment not found)
             if not upd_response:
-                await self.jira_client.comment_issue(self.current_job.issue_key, answer.content)
+                response = await self.jira_client.comment_issue(self.current_job.issue_key, answer.content)
             
             await self._jobqueue.update_status(self.current_job.uuid, JobStatus.DONE)
-            
+            self._retries = 0
+  
             self.current_job = None
             self.status = WorkerStatus.AVAILABLE
             
