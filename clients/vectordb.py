@@ -21,6 +21,18 @@ class VectorStore(BaseModel, ABC):
         pass
     
     @abstractmethod
+    def collection_exists(self, collection_name: str)-> bool:
+        """Checks whether or not a collection exists.
+
+        Args:
+            collection_name (str): name of collection to check.
+
+        Returns:
+            output (bool): True if collection exists, otherwise False.
+        """
+        pass
+    
+    @abstractmethod
     def get_collection(self, collection_name: str):
         """Gets an existing colletion handle.
 
@@ -55,6 +67,15 @@ class VectorStore(BaseModel, ABC):
             metadatas (list[dict]): list of metadatas.
         """
         pass
+    
+    @abstractmethod
+    def clear(self, collection_name: str):
+        """Clears collection.
+
+        Args:
+            collection_name (str): name of collection.
+        """
+        pass
 
 
 class QdrantVectorStore(VectorStore):
@@ -69,15 +90,20 @@ class QdrantVectorStore(VectorStore):
     
     def create_collection(self, collection_name: str, vec_size: int, metric: models.Distance):
         if not self._client.collection_exists(collection_name=collection_name):
-            return self._client.create_collection(
+            self._client.create_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(size=vec_size, distance=metric)
             )
+            
+            return self
         
         return None
     
-    def get_collection(self, collection_name: str):
-        return None
+    def collection_exists(self, collection_name: str) -> bool:
+        return self._client.collection_exists(collection_name=collection_name)
+    
+    def get_collection(self, collection_name: str) -> dict:
+        return self._client.get_collection(collection_name=collection_name)
     
     def query(self, collection_name: str, query_vec: list[float], top_k: int = 1,filter : Any = None, params : Any = None):
         
@@ -95,13 +121,15 @@ class QdrantVectorStore(VectorStore):
     
     def upsert(self, collection_name: str, ids: list[str], vectors: list[list[float]], metadatas: list[dict]):
 
-        # TODO: should check for symmetry before
+        # TODO: implement sparse vector storing
+        if not (len(ids) == len(vectors) and len(vectors) == len(metadatas)):
+            raise ValueError("Attempted to upsert with uneven lists.")
 
         points = [
             models.PointStruct(
                 id=id, 
                 payload=metadata, 
-                vector= vec
+                vector=vec
             ) 
             for id, metadata, vec in zip(ids, vectors, metadatas)]
         
@@ -109,4 +137,14 @@ class QdrantVectorStore(VectorStore):
             collection_name=collection_name,
             points=points
         )
+        
+    
+    def clear(self, collection_name):
+        if self.collection_exists(collection_name=collection_name):
+            self._client.delete(
+                collection_name=collection_name,
+                points_selector=models.Filter(must=[])
+            )
+        else:
+            raise ValueError("Attempted to clear inexistent collection.")
         
