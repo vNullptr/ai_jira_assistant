@@ -119,19 +119,32 @@ class QdrantVectorStore(VectorStore):
         
         return result
     
-    def upsert(self, collection_name: str, ids: list[str], vectors: list[list[float]], metadatas: list[dict]):
+    def upsert(self, collection_name: str, ids: list[str], vectors: list[list[float]], metadatas: list[dict], sparse: bool = False, indices: list[list[int]] = []):
 
-        # TODO: implement sparse vector storing
         if not (len(ids) == len(vectors) and len(vectors) == len(metadatas)):
             raise ValueError("Attempted to upsert with uneven lists.")
 
-        points = [
-            models.PointStruct(
-                id=id, 
-                payload=metadata, 
-                vector=vec
-            ) 
-            for id, metadata, vec in zip(ids, vectors, metadatas)]
+        if not sparse:
+            points = [
+                models.PointStruct(
+                    id=id, 
+                    payload=metadata, 
+                    vector=vec
+                ) 
+                for id, metadata, vec in zip(ids, vectors, metadatas)]
+        else:
+            points = [
+                models.PointStruct(
+                    id=id,
+                    payload=metadata,
+                    vector={
+                        "text": models.SparseVector(
+                            indices=indice,
+                            values=vec
+                        )
+                    }
+                ) for id, metadata, vec, indice in zip(ids, vectors, metadatas, indices)
+            ]    
         
         self._client.upsert(
             collection_name=collection_name,
