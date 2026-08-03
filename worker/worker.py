@@ -27,7 +27,7 @@ class Worker(BaseModel):
     async def start(self):
         """Initializes the worker.
         """
-        # TODO: initializing + sanity check.
+        # initializing + sanity check.
         await self._jobqueue.init()
         await self._jobqueue.sweep()
         

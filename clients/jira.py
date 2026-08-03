@@ -79,7 +79,7 @@ class JiraAPIClient(JiraClient):
     @retry(retry=retry_if_exception_type(RetryableException), stop=stop_after_attempt(4), wait=wait_exponential(1, 15), reraise=True)
     async def get_issue(self, issue_key: str) -> list:
         response = await self._client.get(f"issue/{issue_key}")
-        # TODO: Handling wrong status code with tenacity retry
+        
         if response.status_code == 200:     
             return response.json()
         elif response.status_code >= 500:
