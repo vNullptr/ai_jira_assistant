@@ -57,6 +57,7 @@ services:
       - .env
     environment:
       - POSTGRES_HOST=postgres
+      - PYTHONUNBUFFERED=1
     command: ["python","-m","worker.main"]
     restart: unless-stopped
     depends_on:
