@@ -83,9 +83,9 @@ class JiraAPIClient(JiraClient):
         if response.status_code == 200:     
             return response.json()
         elif response.status_code >= 500:
-            raise RetryableException("[JIRA CLIENT] Couldn't fetch issue.")
+            raise RetryableException(f"[JIRA CLIENT] Couldn't fetch issue. ({response.status_code})")
         else:
-            raise TerminalException("[JIRA CLIENT] Couldn't fetch issue.")
+            raise TerminalException(f"[JIRA CLIENT] Couldn't fetch issue. ({response.status_code})")
         
         
     async def comment_issue(self, issue_key: str, content: str):
@@ -120,9 +120,9 @@ class JiraAPIClient(JiraClient):
         if response.status_code == 201:
             return response.json()
         elif response.status_code >= 500:
-            return RetryableException("[JIRA CLIENT] Couldn't post comment.")
+            return RetryableException(f"[JIRA CLIENT] Couldn't post comment. ({response.status_code})")
         else:
-            return TerminalException("[JIRA CLIENT] Couldn't post comment.")
+            return TerminalException(f"[JIRA CLIENT] Couldn't post comment. ({response.status_code})")
         
     
     async def update_comment(self, issue_key: str, comment_id: str, content: str):
@@ -159,9 +159,9 @@ class JiraAPIClient(JiraClient):
         elif response.status_code == 404:
             return None
         elif response.status_code >= 500:
-            raise RetryableException("[JIRA CLIENT] Failed to update comment.")
+            raise RetryableException(f"[JIRA CLIENT] Failed updating comment. ({response.status_code})")
         else:
-            raise TerminalException("[JIRA CLIENT] Failed updating comment.")
+            raise TerminalException(f"[JIRA CLIENT] Failed updating comment. ({response.status_code})")
         
 
 def adf_to_txt(node):
