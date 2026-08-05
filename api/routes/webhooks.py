@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Response, Request
+from fastapi import APIRouter, Response
+import asyncio
 
+from schema.requests import Request
 from services.jobqueue import *
 from config import Settings
-import asyncio, sys
 
 
 settings = Settings()
@@ -16,14 +17,13 @@ router = APIRouter(
 
 @router.post("")
 async def trigger(request : Request):
-    body = await request.json()
-
-    if not body["comment"]["jsdPublic"] and body["comment"]["body"].strip("") == "/assist":
+    
+    if not request.comment.jsdPublic and request.comment.body.strip("") == "/assist":
         await jq.init()
         await jq.queue(
-            issue_key=body["issue"]["key"],
-            comment_id=body["comment"]["id"],
-            author=body["comment"]["author"]["accountId"]
+            issue_key=request.issue.key,
+            comment_id=request.comment.id,
+            author=request.comment.author.accountId
             )
     
     return Response(status_code=200)
