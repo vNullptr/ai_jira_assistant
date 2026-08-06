@@ -155,7 +155,7 @@ class JiraAPIClient(JiraClient):
         response = await self._client.put(f"issue/{issue_key}/comment/{comment_id}",data=payload)
         
         if response.status_code == 200: 
-            return response.json
+            return response.json()
         elif response.status_code == 404:
             return None
         elif response.status_code >= 500:
