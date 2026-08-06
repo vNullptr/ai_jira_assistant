@@ -54,8 +54,8 @@ class Worker(BaseModel):
     def pause(self):
         pass
     
-    def end(self):
-        self.database_client.close()
+    async def end(self):
+        await self.database_client.close()
         
     def flush(self):
         """Flush current state of worker resetting current job and restoring status to available.
@@ -90,7 +90,6 @@ class Worker(BaseModel):
                 response = await self.jira_client.comment_issue(self.current_job.issue_key, answer.content)
             
             await self._jobqueue.update_status(self.current_job.uuid, JobStatus.DONE)
-            self._retries = 0
   
             self.current_job = None
             self.status = WorkerStatus.AVAILABLE
