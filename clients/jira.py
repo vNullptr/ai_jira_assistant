@@ -120,9 +120,9 @@ class JiraAPIClient(JiraClient):
         if response.status_code == 201:
             return response.json()
         elif response.status_code >= 500:
-            return RetryableException(f"[JIRA CLIENT] Couldn't post comment. ({response.status_code})")
+            raise RetryableException(f"[JIRA CLIENT] Couldn't post comment. ({response.status_code})")
         else:
-            return TerminalException(f"[JIRA CLIENT] Couldn't post comment. ({response.status_code})")
+            raise TerminalException(f"[JIRA CLIENT] Couldn't post comment. ({response.status_code})")
         
     
     async def update_comment(self, issue_key: str, comment_id: str, content: str):
