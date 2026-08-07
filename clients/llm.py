@@ -58,9 +58,6 @@ class MistralClient(LLMClient):
         )
         if not self.langfuse_client:
             self.langfuse_client = get_client()
-        
-        if len(self.tools):
-            self._client.bind_tools(self.tools)
 
     @retry(stop=stop_after_attempt(4), wait=wait_exponential(1, min=10, max=40),  retry=retry_if_exception_type(RetryableException), reraise=True)
     @observe(name="Mistral Prompt", as_type="generation")
