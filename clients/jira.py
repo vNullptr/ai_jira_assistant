@@ -34,7 +34,7 @@ class JiraClient(BaseModel, ABC):
         pass
     
     @abstractmethod
-    async def update_comment(self, issue_key: str, comment_id: str):
+    async def update_comment(self, issue_key: str, comment_id: str, content: str):
         """Updates/Edits specific comment.
         
         Args:
