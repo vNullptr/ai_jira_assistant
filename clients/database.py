@@ -5,10 +5,6 @@ import psycopg
 from psycopg.rows import dict_row
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from config import Settings
-
-settings = Settings()
-
 class DatabaseClient(BaseModel, ABC):
     host : str = Field(description="Database server hostname.", default="localhost")
     port : int = Field(description="Database server post.")
