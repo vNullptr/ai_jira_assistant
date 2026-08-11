@@ -44,11 +44,11 @@ class Worker(BaseModel):
             except TerminalException as e:
                 await self._jobqueue.update_status(self.current_job.uuid, JobStatus.FAILED)
                 print("Job failed: ", e)
-                self.flush()
+                self._flush()
             except RetryableException as e:
                 await self._jobqueue.update_status(self.current_job.uuid, JobStatus.PENDING)
                 print("Job failed placed at the back of queue: ", e)
-                self.flush()
+                self._flush()
                 
     
     def pause(self):
@@ -57,7 +57,7 @@ class Worker(BaseModel):
     async def end(self):
         await self.database_client.close()
         
-    def flush(self):
+    def _flush(self):
         """Flush current state of worker resetting current job and restoring status to available.
         """
         self.current_job = None
