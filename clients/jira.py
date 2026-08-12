@@ -2,8 +2,10 @@ from pydantic import BaseModel, PrivateAttr, Field, computed_field, field_valida
 from abc import ABC, abstractmethod
 import httpx, json
 from langfuse import observe
-from schema.exceptions import RetryableException, TerminalException
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+
+from ..log_config import logger
+from schema.exceptions import RetryableException, TerminalException
 
 class JiraClient(BaseModel, ABC):
     """Jira Client used to communicate with a project."""
@@ -157,6 +159,7 @@ class JiraAPIClient(JiraClient):
         if response.status_code == 200: 
             return response.json()
         elif response.status_code == 404:
+            logger.warning("missing updateable comment.")
             return None
         elif response.status_code >= 500:
             raise RetryableException(f"[JIRA CLIENT] Failed updating comment. ({response.status_code})")

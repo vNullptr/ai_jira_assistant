@@ -9,6 +9,7 @@ from langfuse import observe, get_client
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import httpx
 
+from ..log_config import configure_logging, logger
 from schema.exceptions import RetryableException
 
 class LLMClient(BaseModel, ABC):
@@ -51,12 +52,14 @@ class MistralClient(LLMClient):
         
     def model_post_init(self, context: Any) -> None:
         
+        # TODO: request list of working model before requesting.
         self._client = ChatOllama(
             model=self.model_name,
             temperature=self.temperature,
             base_url=self.formatted_url
         )
         if not self.langfuse_client:
+            logger.warning("missing langfuse client dependency, creating.")
             self.langfuse_client = get_client()
 
     @retry(stop=stop_after_attempt(4), wait=wait_exponential(1, min=10, max=40),  retry=retry_if_exception_type(RetryableException), reraise=True)
@@ -76,6 +79,6 @@ class MistralClient(LLMClient):
         try:
             result = chain.invoke(prompt_content)
         except httpx.ConnectError as e:
-            raise RetryableException("[LLM] Couldn't reach LLM server : ", e)
+            raise RetryableException(f"[LLM] Couldn't reach LLM server ({self.model_name}) : ", e)
         
         return result 

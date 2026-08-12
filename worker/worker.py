@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, PrivateAttr
 from typing import Optional
 import asyncio
+from langfuse import observe
 
 from services.jobqueue import JobQueue
 from clients.database import DatabaseClient
@@ -8,7 +9,7 @@ from clients.jira import JiraClient, format_issue_thread
 from clients.llm import LLMClient
 from schema.enums import *
 from schema.job import Job
-from langfuse import observe
+from ..log_config import configure_logging, logger
 from schema.exceptions import RetryableException, TerminalException 
 
 class Worker(BaseModel):
@@ -21,6 +22,7 @@ class Worker(BaseModel):
     
     def model_post_init(self, context):
         self._jobqueue = JobQueue(database_client=self.database_client)
+        configure_logging()
         
         return super().model_post_init(context)
     
@@ -39,15 +41,15 @@ class Worker(BaseModel):
                 continue
             
             try:
-                print(f"Job found (id:{self.current_job.uuid})")
+                logger.info(f"Job found (id:{self.current_job.uuid})")
                 await self.process()
             except TerminalException as e:
                 await self._jobqueue.update_status(self.current_job.uuid, JobStatus.FAILED)
-                print("Job failed: ", e)
+                logger.error("Job failed: ", e)
                 self._flush()
             except RetryableException as e:
                 await self._jobqueue.update_status(self.current_job.uuid, JobStatus.PENDING)
-                print("Job failed placed at the back of queue: ", e)
+                logger.warning("Job failed placed at the back of queue: ", e)
                 self._flush()
                 
     
