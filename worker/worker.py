@@ -9,7 +9,7 @@ from clients.jira import JiraClient, format_issue_thread
 from clients.llm import LLMClient
 from schema.enums import *
 from schema.job import Job
-from ..log_config import configure_logging, logger
+from log_config import configure_logging, logger
 from schema.exceptions import RetryableException, TerminalException 
 
 class Worker(BaseModel):

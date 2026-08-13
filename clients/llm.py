@@ -9,7 +9,7 @@ from langfuse import observe, get_client
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import httpx
 
-from ..log_config import configure_logging, logger
+from log_config import logger
 from schema.exceptions import RetryableException
 
 class LLMClient(BaseModel, ABC):

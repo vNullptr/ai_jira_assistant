@@ -4,7 +4,7 @@ import httpx, json
 from langfuse import observe
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 
-from ..log_config import logger
+from log_config import logger
 from schema.exceptions import RetryableException, TerminalException
 
 class JiraClient(BaseModel, ABC):
