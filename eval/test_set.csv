@@ -1,5 +1,5 @@
 "id","case","expected"
-"chronological_diagnostic_trace","THREAD TITLE : PowerCARD personalization batch PBJ-4471 stuck in RUNNING state
+"chronological_diagnostic_trace","THREAD TITLE : OPPOSITION personalization batch PBJ-4471 stuck in RUNNING state
 THREAD CREATED ON 2026-08-03T09:12:04.500+0100
 THREAD DESCRIPTION : Bonjour, le batch de personnalisation PBJ-4471 lance hier soir pour la production de 3200 cartes est bloque en statut RUNNING depuis ce matin 6h. Aucune carte n'a ete generee sur le HSM. C'est urgent, la livraison chez l'imprimeur est prevue cet apres-midi.
 
@@ -41,9 +41,9 @@ Le transporteur confirme un colis bloque en douane pour verification documentair
 
 [Yasmine] - 2026-08-04T12:15:00.000+0100
 Ok compris. Peut-on prevenir BankOne du delai ? Et peut-on savoir si un renvoi accelere est possible si le colis n'est pas debloque d'ici vendredi ?","LC-8823,1500,BankOne,Roissy,2026-08-02,douane,24,48h,vendredi"
-"ambiguous_missing_info","THREAD TITLE : Probleme sur PowerCARD
+"ambiguous_missing_info","THREAD TITLE : Probleme sur OPPOSITION
 THREAD CREATED ON 2026-08-06T08:00:00.000+0100
-THREAD DESCRIPTION : Bonjour, on a un souci depuis ce matin sur PowerCARD, plusieurs operations echouent. Merci de voir ca rapidement.
+THREAD DESCRIPTION : Bonjour, on a un souci depuis ce matin sur OPPOSITION, plusieurs operations echouent. Merci de voir ca rapidement.
 
 [Farid] - 2026-08-06T08:10:00.000+0100
 Bonjour, pouvez-vous preciser quel module est concerne (emission, personnalisation, livraison, opposition) ? Avez-vous un code erreur, un identifiant de transaction ou de batch, et depuis quelle heure precisement ?
@@ -71,9 +71,9 @@ Le HSM hsm-pin-03 a ete repasse en mode operationnel manuellement. Relance du ba
 
 [Imane] - 2026-08-02T08:25:00.000+0100
 Les 2400 PIN mailers ont ete generes avec succes et transmis a l'imprimeur. Ticket resolu. On ajoute une alerte de supervision sur le statut du HSM hsm-pin-03 pour eviter que la maintenance planifiee bloque a nouveau la generation sans notification.","hsm-pin-03,firmware,06h58,2400,PIN mailers,resolu,alerte,supervision,None"
-"multiple_ids_modules_context","THREAD TITLE : Anomalies multiples suite migration PowerCARD v7.2
+"multiple_ids_modules_context","THREAD TITLE : Anomalies multiples suite migration OPPOSITION v7.2
 THREAD CREATED ON 2026-08-05T09:00:00.000+0100
-THREAD DESCRIPTION : Depuis la migration vers PowerCARD v7.2 hier soir, plusieurs anomalies distinctes remontees : le module OPPOSITION renvoie une erreur ERR-4021 sur environ 15% des demandes, le batch nocturne BTC-NIGHT-0805 s'est termine avec un statut WARNING au lieu de SUCCESS, et le fichier d'export ISO20022 EXP-0805.xml semble tronque (taille 40% inferieure a la normale).
+THREAD DESCRIPTION : Depuis la migration vers OPPOSITION v7.2 hier soir, plusieurs anomalies distinctes remontees : le module OPPOSITION renvoie une erreur ERR-4021 sur environ 15% des demandes, le batch nocturne BTC-NIGHT-0805 s'est termine avec un statut WARNING au lieu de SUCCESS, et le fichier d'export ISO20022 EXP-0805.xml semble tronque (taille 40% inferieure a la normale).
 
 [Tarek] - 2026-08-05T09:20:00.000+0100
 Pour ERR-4021 sur OPPOSITION, c'est un code qui correspond a un timeout de connexion vers le referentiel client CRM-CORE, introduit par le nouveau timeout par defaut de v7.2 (500ms au lieu de 2000ms avant).
@@ -156,7 +156,7 @@ Ok je le contacte pour qu'il passe en agence aujourd'hui. Vous pourrez emettre l
 
 [Bilal] - 2026-08-08T09:45:00.000+0100
 Oui, des reception de la confirmation KYC on peut emettre sous 1 heure.","VIP-00231,KYC,12 mois,reglementairement,agence,1 heure"
-"escalation_stakeholder_unavailable","THREAD TITLE : Go-live PowerCARD module opposition v2 bloque
+"escalation_stakeholder_unavailable","THREAD TITLE : Go-live OPPOSITION module opposition v2 bloque
 THREAD CREATED ON 2026-08-06T14:00:00.000+0100
 THREAD DESCRIPTION : Le go-live du nouveau module opposition v2, prevu demain matin, est bloque par un test de non-regression qui echoue sur le scenario d'opposition carte perdue a l'etranger.
 
