@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, computed_field
 from langchain_core.language_models import BaseChatModel
 from ragas import EvaluationDataset, evaluate
 from ragas.metrics.collections import Faithfulness, SummaryScore
@@ -11,6 +11,17 @@ class RagasEval(BaseModel):
     temperature : float = Field(ge=0, le=2, default=0)
     base_url : str = Field(description="base url ollama is hosted on.", default="localhost:11434")
     _client : BaseChatModel = PrivateAttr()
+
+    @field_validator("base_url")
+    @classmethod
+    def strip_scheme(cls, v: str) -> str:
+        return v.removeprefix("https://").removeprefix("http://").rstrip("/")
+    
+    @computed_field
+    @property
+    def formatted_url(self) -> str:
+        return f"http://{self.base_url}"
+
 
     def model_post_init(self, context):
         
@@ -31,12 +42,12 @@ class RagasEval(BaseModel):
     async def eval(self, prompt : str, context : str, response : str) -> dict:
         """Faithfulness evaluation using ragas.
         """
-        dataset = EvaluationDataset.from_dict({
+        dataset = EvaluationDataset.from_dict([{
             "user_input": prompt, 
             "retrieved_contexts": [context],         
             "reference_contexts": [context],         
             "response": response,                           
-        })
+        }])
         
         wrapped_llm = LangchainLLMWrapper(self._client)
         faithfulness = Faithfulness(llm=wrapped_llm)
