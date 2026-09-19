@@ -54,7 +54,7 @@ services:
       start_period: 30s
 
   worker:
-    image: jira-assistant/dev:latest
+    image: jira-assistant/dev:test
     env_file:
       - .env
     environment:
