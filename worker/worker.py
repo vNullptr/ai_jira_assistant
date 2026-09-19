@@ -3,6 +3,7 @@ from typing import Optional
 import asyncio
 from langfuse import observe
 
+from eval.ragas import RagasEval
 from services.jobqueue import JobQueue
 from clients.database import DatabaseClient
 from clients.jira import JiraClient, format_issue_thread
@@ -16,6 +17,7 @@ class Worker(BaseModel):
     database_client : DatabaseClient = Field(description="Database client used to establish connection and manage queue.")
     jira_client : JiraClient = Field(description="Jira client used to communicate with JSM.")
     llm_client : LLMClient = Field(description="LLM client used for inference.")
+    evaluator : RagasEval = Field(description="Ragas Evaluator.")
     status : Optional[WorkerStatus] = Field(description="Defines the status of the worker.", default=WorkerStatus.AVAILABLE)
     current_job : Optional[Job] = Field(description="ID of the issue being currently processed.", default=None)
     _jobqueue : JobQueue = PrivateAttr()
@@ -71,6 +73,15 @@ class Worker(BaseModel):
         if (not self.current_job) and self.status == WorkerStatus.AVAILABLE:
             self.current_job = await self._jobqueue.claim_head(JobStatus.PENDING)
     
+    @observe(name="Output Evaluation", as_type="evaluator")
+    async def _log_eval(self, prompt : str, context: str, response : str):
+        """Logs the evaluation to terminal
+        """
+        result = await self.evaluator.eval(prompt, context, response)
+        
+        logger.info("Evaluation Result :")
+        logger.info(result)
+    
     @observe(name="Processing Chain", as_type="chain")        
     async def process(self):
         """Processes current claimed job.
@@ -95,6 +106,8 @@ class Worker(BaseModel):
   
             self.current_job = None
             self.status = WorkerStatus.AVAILABLE
+            
+            asyncio.create_task(self._log_eval("", formatted_thread, upd_response))
             
             
               
