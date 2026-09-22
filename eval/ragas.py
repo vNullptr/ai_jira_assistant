@@ -2,15 +2,17 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator, computed_fi
 from langchain_core.language_models import BaseChatModel
 from ragas import EvaluationDataset, evaluate
 from ragas.metrics.collections import Faithfulness, SummaryScore
-from ragas.llms import LangchainLLMWrapper
-from langchain_ollama import ChatOllama
+from ragas.llms import llm_factory
+from openai import AsyncOpenAI
+
+from log_config import configure_logging, logger
 
 class RagasEval(BaseModel):
     
     model_name : str = Field(default="mistral", frozen=True)
     temperature : float = Field(ge=0, le=2, default=0)
     base_url : str = Field(description="base url ollama is hosted on.", default="localhost:11434")
-    _client : BaseChatModel = PrivateAttr()
+    _client = PrivateAttr()
 
     @field_validator("base_url")
     @classmethod
@@ -20,16 +22,19 @@ class RagasEval(BaseModel):
     @computed_field
     @property
     def formatted_url(self) -> str:
-        return f"http://{self.base_url}"
+        return f"http://{self.base_url}/v1/"
 
 
     def model_post_init(self, context):
         
-        self._client = ChatOllama(
-            model=self.model_name,
-            temperature=self.temperature,
-            base_url=self.formatted_url
+        configure_logging()
+        
+        self._client = AsyncOpenAI(
+            base_url=self.formatted_url,
+            api_key="ollama"
         )
+        
+        logger.info("Evaluation LLM loaded.")
         
         return super().model_post_init(context)
 
@@ -42,22 +47,27 @@ class RagasEval(BaseModel):
     async def eval(self, prompt : str, context : str, response : str) -> dict:
         """Faithfulness evaluation using ragas.
         """
-        dataset = EvaluationDataset.from_dict([{
-            "user_input": prompt, 
-            "retrieved_contexts": [context],         
-            "reference_contexts": [context],         
-            "response": response,                           
-        }])
         
-        wrapped_llm = LangchainLLMWrapper(self._client)
-        faithfulness = Faithfulness(llm=wrapped_llm)
-        summary = SummaryScore(llm=wrapped_llm)
-        metrics = [faithfulness, summary]
+        logger.info("Starting evaluation.")
+        
+        llm = llm_factory("mistral", provider="openai", client=self._client)
+        faithfulness = Faithfulness(llm=llm)
+        summary = SummaryScore(llm=llm)
         
         
-        results = await evaluate(
-            dataset=dataset,
-            metrics=metrics
-        ) 
+        results = {}
+        results["faithfulness_score"] = await faithfulness.ascore(
+            user_input=prompt, 
+            retrieved_contexts=[context], 
+            response=response
+            )
+        results["summary_score"] = await summary.ascore(
+            reference_contexts=[context], 
+            response=response
+        )
+        
+        
+        logger.info("Evaluation done.")
+        print(results)
         
         return results
