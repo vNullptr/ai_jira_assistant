@@ -95,7 +95,7 @@ class Worker(BaseModel):
             
             formatted_thread = format_issue_thread(issue_thread)
             # template > chain > answer
-            answer = self.llm_client.prompt("issue-thread-prompt", {"thread":formatted_thread})
+            answer = self.llm_client.infer("issue-thread-prompt", {"thread":formatted_thread})
                 
             upd_response = await self.jira_client.update_comment(self.current_job.issue_key, response["id"], answer.content)
             # returns None if 404 ("Processing..." comment not found)
@@ -107,7 +107,10 @@ class Worker(BaseModel):
             self.current_job = None
             self.status = WorkerStatus.AVAILABLE
             
-            asyncio.create_task(self._log_eval("", formatted_thread, upd_response))
+            prompt_tmp = self.llm_client.get_prompt("issue-thread-prompt")
+            system_prompt = next(message["content"] for message in prompt_tmp.prompt if message["role"] == "system")
+            
+            await self._log_eval(system_prompt, formatted_thread, answer.content)
             
             
               
