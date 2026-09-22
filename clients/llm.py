@@ -18,7 +18,19 @@ class LLMClient(BaseModel, ABC):
     tools : List[Any] = []
     
     @abstractmethod
-    def prompt(self, prompt_template_name : str, prompt_content : dict = None) -> AIMessage:
+    def get_prompt(self, prompt_template_name : str):
+        """Returns the langfuse retrieved prompt
+
+        Args:
+            prompt_template_name (str): langfuse prompt name.
+            
+        Returns:
+            langfuse prompt object.
+        """
+        pass
+    
+    @abstractmethod
+    def infer(self, prompt_template_name : str, prompt_content : dict = None) -> AIMessage:
         """Prompts the model with a specific prompt template and content.
 
         Args:
@@ -62,16 +74,22 @@ class MistralClient(LLMClient):
             logger.warning("missing langfuse client dependency, creating.")
             self.langfuse_client = get_client()
 
+
+    def get_prompt(self, prompt_template_name : str):
+        prompt_template = self.langfuse_client.get_prompt(prompt_template_name, label="production")
+            
+        return prompt_template
+        
+
     @retry(stop=stop_after_attempt(4), wait=wait_exponential(1, min=10, max=40),  retry=retry_if_exception_type(RetryableException), reraise=True)
     @observe(name="Mistral Prompt", as_type="generation")
-    def prompt(self, prompt_template_name : str, prompt_content : dict = None) -> AIMessage:
+    def infer(self, prompt_template_name : str, prompt_content : dict = None) -> AIMessage:
         
-        prompt_template = self.langfuse_client.get_prompt(prompt_template_name, label="production")
+        prompt_template = self.get_prompt(prompt_template_name)
         
         self.langfuse_client.update_current_generation(
             prompt=prompt_template
         )
-        
         
         chain = (ChatPromptTemplate(prompt_template.get_langchain_prompt())
             | self._client)
