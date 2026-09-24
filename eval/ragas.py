@@ -1,11 +1,12 @@
 from pydantic import BaseModel, Field, PrivateAttr, field_validator, computed_field
 from langchain_core.language_models import BaseChatModel
-from ragas import EvaluationDataset, evaluate
+from ragas import EvaluationDataset, experiment
 from ragas.metrics.collections import Faithfulness, SummaryScore
 from ragas.llms import llm_factory
 from openai import AsyncOpenAI
 
 from log_config import configure_logging, logger
+from clients.llm import LLMClient
 
 class RagasEval(BaseModel):
     
@@ -48,8 +49,6 @@ class RagasEval(BaseModel):
         """Faithfulness evaluation using ragas.
         """
         
-        logger.info("Starting evaluation.")
-        
         llm = llm_factory("mistral", provider="openai", client=self._client)
         faithfulness = Faithfulness(llm=llm)
         summary = SummaryScore(llm=llm)
@@ -66,8 +65,28 @@ class RagasEval(BaseModel):
             response=response
         )
         
-        
-        logger.info("Evaluation done.")
-        print(results)
-        
         return results
+    
+    
+
+async def _experiment_func(client : LLMClient, prompt_name : str, input : str):
+    output = None
+    
+    #inference and return {response, context}
+    
+    return output
+
+@experiment()
+async def start_parametrized_experiment(self, row, exp_name : str, model_name : str, temperature : float, client : LLMClient, prompt_name : str):
+    
+    output = await self._experiment_func(client, prompt_name, row["input"])
+    
+    #eval metrics here
+    
+    return {
+        **row,
+        "response": output["response"],
+        "experiment_name": f"baseline_{model_name}_{temperature}_{prompt_name}",
+        "model_name": model_name, 
+        "temperature": temperature
+    }
